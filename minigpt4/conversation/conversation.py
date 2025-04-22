@@ -182,20 +182,18 @@ class Chat:
         )
         return generation_kwargs
 
-    def answer(self, conv, img_list, **kargs):
+    def answer(self, conv, img_list, return_out_emb=False, **kargs):
         generation_dict = self.answer_prepare(conv, img_list, **kargs)
         output_token = self.model_generate(**generation_dict)[0]
-        ################################
-        # MODIFY HERE
-        # return output_token
-        ################################
-
         output_text = self.model.llama_tokenizer.decode(output_token, skip_special_tokens=True)
+        output_emb = self.model.llama_model.output_embs
 
         output_text = output_text.split('###')[0]  # remove the stop sign '###'
         output_text = output_text.split('Assistant:')[-1].strip()
 
         conv.messages[-1][1] = output_text
+        if return_out_emb:
+            return output_text, output_token.cpu().numpy(), output_emb
         return output_text, output_token.cpu().numpy()
 
     def stream_answer(self, conv, img_list, **kargs):

@@ -10,7 +10,6 @@ from transformers.modeling_outputs import CausalLMOutputWithPast
 from transformers.models.llama.modeling_llama import LLAMA_INPUTS_DOCSTRING, _CONFIG_FOR_DOC
 from transformers.models.llama.modeling_llama import LlamaForCausalLM as LlamaForCausalLMOrig
 
-
 class LlamaForCausalLM(LlamaForCausalLMOrig):
 
     @add_start_docstrings_to_model_forward(LLAMA_INPUTS_DOCSTRING)
@@ -75,6 +74,9 @@ class LlamaForCausalLM(LlamaForCausalLMOrig):
         )
 
         hidden_states = outputs[0]
+        if hidden_states.shape[1] == 1:
+            self.output_embs = torch.cat((self.output_embs, hidden_states.squeeze(1)), dim=0)
+
         if hasattr(self.config, 'pretraining_tp') and self.config.pretraining_tp > 1:
             lm_head_slices = self.lm_head.weight.split(self.vocab_size // self.config.pretraining_tp, dim=0)
             logits = [F.linear(hidden_states, lm_head_slices[i]) for i in range(self.config.pretraining_tp)]

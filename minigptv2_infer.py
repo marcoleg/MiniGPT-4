@@ -65,12 +65,25 @@ question = 'describe the image as detailed as possible in one short sentence'
 chat.ask(question, conv)
 print('Asking time:', time.time()-start1)
 start2 = time.time()
-chat.encode_img(img_list)
+chat.encode_img(img_list)  # after this we have img_list[0] that is the embedding torch.Size([1, 256, 4096]),
+# where 256 = 1024 / 4 i.e. they group 4 visual patches into one token, which is 4096-long
 print('Encoding time:', time.time()-start2)
 
 # get answer
 start3 = time.time()
-answer = chat.answer(conv, img_list)[0]
+answer, _, output_emb = chat.answer(conv, img_list, return_out_emb=True)
 print('Answering time:', time.time()-start3)
 print('Total elapsed time:', time.time()-start)
 print(answer)
+input_llm = img_list[0].squeeze(0)
+print('Last Hidden State:', output_emb.shape)
+'''
+OUTPUTS NEEDED FOR DATASET CONSTRUCTION
+1. Embedding post ViT-Linear -> input_llm, [M, 4096]
+2. Embedding pre tokenizer ma post decoder layers di Llama -> output_emb (ultimo hidden state, [N, 4096])
+3. Testo diretto da passare al tokenizzatore di SD-Turbo cosi da non cambiare l'architettura di SD-Turbo -> answer 
+
+N.B. M è la dimensione del numero di token visuali, i.e M = 4xP dove P è una patch 14x14 pixel dell'immagine 
+resizata a 448x448, ossia 32x32 patch nell'immagine = 1024, che diviso 4 fa appunto 256 = M
+N.B. N è la dimensione dei token di uscita dal LLM, che poi saranno l'input del Tokenizer
+'''
